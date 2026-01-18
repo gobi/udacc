@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "UDA Cycling Club",
-  description: "Дугуйн клубын удирдлагын систем",
+  description: "Монголын дугуйчдын нэгдсэн клуб",
 };
 
 export default function RootLayout({
@@ -15,12 +16,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="mn">
-      <body className="bg-gray-50 min-h-screen">
+      <body className="bg-gray-50 min-h-screen flex flex-col">
         <AuthProvider>
           <Navbar />
-          <main className="container mx-auto px-4 py-8">
+          <main className="flex-grow pt-20">
             {children}
           </main>
+          <Footer />
         </AuthProvider>
       </body>
     </html>

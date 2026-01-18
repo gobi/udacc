@@ -19,9 +19,9 @@ interface Ride {
 }
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
+  draft: 'bg-secondary-100 text-secondary-600',
   published: 'bg-green-100 text-green-600',
-  ongoing: 'bg-blue-100 text-blue-600',
+  ongoing: 'bg-primary-100 text-primary-600',
   completed: 'bg-purple-100 text-purple-600',
   cancelled: 'bg-red-100 text-red-600',
 };
@@ -47,63 +47,153 @@ export default function RidesPage() {
       .finally(() => setLoading(false));
   }, [filter]);
 
-  if (loading) {
-    return <div className="text-center py-12 text-gray-500">Уншиж байна...</div>;
-  }
-
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Аялалууд</h1>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="border rounded-lg px-4 py-2"
-        >
-          <option value="">Бүгд</option>
-          <option value="published">Нээлттэй</option>
-          <option value="ongoing">Явагдаж буй</option>
-          <option value="completed">Дууссан</option>
-        </select>
-      </div>
-
-      {rides.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">Аялал олдсонгүй</div>
-      ) : (
-        <div className="space-y-4">
-          {rides.map((ride) => (
-            <Link
-              key={ride.id}
-              href={`/rides/${ride.id}`}
-              className="block bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-lg font-semibold">{ride.title}</h2>
-                    <span className={`text-xs px-2 py-1 rounded-full ${statusColors[ride.status]}`}>
-                      {statusLabels[ride.status]}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-3">{ride.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>{ride.ride_type?.name}</span>
-                    <span>{ride.distance_km} км</span>
-                    <span>+{ride.elevation_gain} м</span>
-                    <span>{ride.participant_count} оролцогч</span>
-                  </div>
-                </div>
-                <div className="text-right text-sm text-gray-500">
-                  {ride.start_time && (
-                    <div>{new Date(ride.start_time).toLocaleDateString('mn-MN')}</div>
-                  )}
-                  <div>{ride.meeting_point_name}</div>
-                </div>
-              </div>
-            </Link>
-          ))}
+    <div>
+      {/* Page Header */}
+      <section className="gradient-primary text-white py-16">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Аялалууд</h1>
+          <p className="text-white/80 text-lg max-w-2xl">
+            Бидэнтэй хамт аялалд гарч, шинэ найз нөхөд олоорой
+          </p>
         </div>
-      )}
+      </section>
+
+      {/* Filter & Content */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          {/* Filter */}
+          <div className="mb-8 flex flex-wrap gap-3">
+            <button
+              onClick={() => setFilter('')}
+              className={`px-5 py-2.5 rounded-full font-medium transition-all ${
+                filter === ''
+                  ? 'bg-primary-500 text-white shadow-lg'
+                  : 'bg-white text-secondary-600 hover:bg-secondary-50 shadow'
+              }`}
+            >
+              Бүгд
+            </button>
+            <button
+              onClick={() => setFilter('published')}
+              className={`px-5 py-2.5 rounded-full font-medium transition-all ${
+                filter === 'published'
+                  ? 'bg-primary-500 text-white shadow-lg'
+                  : 'bg-white text-secondary-600 hover:bg-secondary-50 shadow'
+              }`}
+            >
+              Нээлттэй
+            </button>
+            <button
+              onClick={() => setFilter('ongoing')}
+              className={`px-5 py-2.5 rounded-full font-medium transition-all ${
+                filter === 'ongoing'
+                  ? 'bg-primary-500 text-white shadow-lg'
+                  : 'bg-white text-secondary-600 hover:bg-secondary-50 shadow'
+              }`}
+            >
+              Явагдаж буй
+            </button>
+            <button
+              onClick={() => setFilter('completed')}
+              className={`px-5 py-2.5 rounded-full font-medium transition-all ${
+                filter === 'completed'
+                  ? 'bg-primary-500 text-white shadow-lg'
+                  : 'bg-white text-secondary-600 hover:bg-secondary-50 shadow'
+              }`}
+            >
+              Дууссан
+            </button>
+          </div>
+
+          {/* Loading */}
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="inline-block w-12 h-12 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin"></div>
+              <p className="text-secondary-500 mt-4">Уншиж байна...</p>
+            </div>
+          ) : rides.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-20 h-20 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-secondary-900 mb-2">Аялал олдсонгүй</h3>
+              <p className="text-secondary-500">Өөр шүүлтүүр сонгоно уу</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rides.map((ride) => (
+                <Link
+                  key={ride.id}
+                  href={`/rides/${ride.id}`}
+                  className="card card-hover group"
+                >
+                  <div className="h-40 gradient-primary relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-16 h-16 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                    </div>
+                    <div className="absolute top-4 left-4 flex gap-2">
+                      <span className="bg-white text-primary-500 px-3 py-1 rounded-full text-sm font-medium">
+                        {ride.ride_type?.name}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[ride.status]}`}>
+                        {statusLabels[ride.status]}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-secondary-900 group-hover:text-primary-500 transition-colors mb-2">
+                      {ride.title}
+                    </h3>
+                    <p className="text-secondary-500 text-sm mb-4 line-clamp-2">{ride.description}</p>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 text-sm text-secondary-400 mb-4">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        {ride.distance_km} км
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                        +{ride.elevation_gain} м
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {ride.participant_count}
+                      </span>
+                    </div>
+
+                    {/* Date & Location */}
+                    <div className="flex items-center justify-between pt-4 border-t border-secondary-100">
+                      <div className="text-sm text-secondary-500">
+                        {ride.start_time && (
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            {new Date(ride.start_time).toLocaleDateString('mn-MN')}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-primary-500 font-medium text-sm">Дэлгэрэнгүй →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
