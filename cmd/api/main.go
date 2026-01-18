@@ -31,7 +31,7 @@ func main() {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	seedRideTypes(db)
+	seedRideTypes()
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -52,7 +52,7 @@ func main() {
 	log.Fatal(app.Listen(":" + cfg.Port))
 }
 
-func seedRideTypes(db interface{ Create(interface{}) interface{ Error() error } }) {
+func seedRideTypes() {
 	for _, rt := range models.DefaultRideTypes {
 		var existing models.RideType
 		if err := database.DB.Where("id = ?", rt.ID).First(&existing).Error; err != nil {
