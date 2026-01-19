@@ -15,9 +15,16 @@ interface MeetingPoint {
   name: string;
 }
 
+interface PassInfo {
+  lat: number;
+  lng: number;
+  elevation: number;
+  distance_km: number;
+}
+
 interface RouteMapProps {
   rideId: string;
-  getRoute: (id: string) => Promise<{ points: RoutePoint[] }>;
+  getRoute: (id: string) => Promise<{ points: RoutePoint[]; passes?: PassInfo[] }>;
   meetingPoint?: MeetingPoint | null;
 }
 
@@ -35,6 +42,7 @@ const RouteMapInner = dynamic(
 
 export function RouteMap({ rideId, getRoute, meetingPoint }: RouteMapProps) {
   const [points, setPoints] = useState<RoutePoint[]>([]);
+  const [passes, setPasses] = useState<PassInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +50,7 @@ export function RouteMap({ rideId, getRoute, meetingPoint }: RouteMapProps) {
     getRoute(rideId)
       .then(data => {
         setPoints(data.points || []);
+        setPasses(data.passes || []);
       })
       .catch(err => {
         setError(err.message || 'Маршрут ачаалахад алдаа гарлаа');
@@ -76,5 +85,5 @@ export function RouteMap({ rideId, getRoute, meetingPoint }: RouteMapProps) {
     );
   }
 
-  return <RouteMapInner points={points} meetingPoint={meetingPoint} />;
+  return <RouteMapInner points={points} meetingPoint={meetingPoint} passes={passes} />;
 }

@@ -12,12 +12,20 @@ import (
 	"github.com/tkrajina/gpxgo/gpx"
 )
 
+type PassInfo struct {
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	Elevation float64 `json:"elevation"`
+	DistanceKm float64 `json:"distance_km"`
+}
+
 type RouteStats struct {
-	DistanceKm    float64 `json:"distance_km"`
-	ElevationGain float64 `json:"elevation_gain"`
-	MaxGradient   float64 `json:"max_gradient"`
-	MaxDescent    float64 `json:"max_descent"`
-	PassCount     int     `json:"pass_count"`
+	DistanceKm    float64    `json:"distance_km"`
+	ElevationGain float64    `json:"elevation_gain"`
+	MaxGradient   float64    `json:"max_gradient"`
+	MaxDescent    float64    `json:"max_descent"`
+	PassCount     int        `json:"pass_count"`
+	Passes        []PassInfo `json:"passes,omitempty"`
 }
 
 type RoutePoint struct {
@@ -63,10 +71,13 @@ func GetRoutePoints(filepath string) ([]RoutePoint, error) {
 }
 
 const (
-	earthRadiusKm      = 6371.0
-	minPassElevation   = 50.0
-	elevationAPIURL    = "https://api.open-elevation.com/api/v1/lookup"
-	maxPointsPerBatch  = 100 // API limit
+	earthRadiusKm        = 6371.0
+	minPassElevation     = 50.0
+	elevationAPIURL      = "https://api.open-elevation.com/api/v1/lookup"
+	maxPointsPerBatch    = 100   // API limit
+	minPassDistanceKm    = 5.0   // Minimum distance between passes
+	peakWindowSize       = 20    // Window size for peak detection (points)
+	minPeakProminence    = 30.0  // Minimum elevation difference to be considered a peak
 )
 
 // ElevationRequest represents a request to the elevation API
@@ -212,6 +223,10 @@ func ParseGPXFile(filepath string) (*RouteStats, error) {
 	var maxGradient float64
 	var maxDescent float64
 
+	// Collect elevations and cumulative distances for pass detection
+	elevations := make([]float64, len(points))
+	distances := make([]float64, len(points))
+
 	// Get elevation for a point (from GPX or API)
 	getElevation := func(idx int) (float64, bool) {
 		if !points[idx].Elevation.Null() && points[idx].Elevation.Value() != 0 {
@@ -224,9 +239,8 @@ func ParseGPXFile(filepath string) (*RouteStats, error) {
 	}
 
 	prevElevation, hasPrevEle := getElevation(0)
-	isClimbing := true
-	lastPeakElevation := prevElevation
-	passCount := 0
+	elevations[0] = prevElevation
+	distances[0] = 0
 
 	for i := 1; i < len(points); i++ {
 		prevPoint := points[i-1]
@@ -237,8 +251,11 @@ func ParseGPXFile(filepath string) (*RouteStats, error) {
 			currPoint.Latitude, currPoint.Longitude,
 		)
 		totalDistance += distance
+		distances[i] = totalDistance
 
 		currElevation, hasCurrEle := getElevation(i)
+		elevations[i] = currElevation
+
 		if hasCurrEle {
 			if !hasPrevEle {
 				prevElevation = currElevation
@@ -262,22 +279,21 @@ func ParseGPXFile(filepath string) (*RouteStats, error) {
 				}
 			}
 
-			if isClimbing && elevationDiff < -5 {
-				if currElevation-lastPeakElevation < -minPassElevation {
-					passCount++
-				}
-				isClimbing = false
-				lastPeakElevation = prevElevation
-			} else if !isClimbing && elevationDiff > 5 {
-				isClimbing = true
-				lastPeakElevation = prevElevation
-			}
-
-			if isClimbing && currElevation > lastPeakElevation {
-				lastPeakElevation = currElevation
-			}
-
 			prevElevation = currElevation
+		}
+	}
+
+	// Calculate passes using peak detection algorithm
+	peaks := findPasses(points, elevations, distances)
+
+	// Convert peaks to PassInfo
+	passes := make([]PassInfo, len(peaks))
+	for i, peak := range peaks {
+		passes[i] = PassInfo{
+			Lat:        peak.Lat,
+			Lng:        peak.Lng,
+			Elevation:  math.Round(peak.Elevation),
+			DistanceKm: math.Round(peak.DistanceKm*10) / 10,
 		}
 	}
 
@@ -285,7 +301,8 @@ func ParseGPXFile(filepath string) (*RouteStats, error) {
 	stats.ElevationGain = math.Round(totalElevationGain*100) / 100
 	stats.MaxGradient = math.Round(maxGradient*100) / 100
 	stats.MaxDescent = math.Round(maxDescent*100) / 100
-	stats.PassCount = passCount
+	stats.PassCount = len(passes)
+	stats.Passes = passes
 
 	return stats, nil
 }
@@ -303,4 +320,95 @@ func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return earthRadiusKm * c
+}
+
+// Peak represents a potential pass/peak on the route
+type Peak struct {
+	Index      int
+	Lat        float64
+	Lng        float64
+	Elevation  float64
+	DistanceKm float64
+}
+
+// findPasses finds peaks that are at least minPassDistanceKm apart
+// Algorithm:
+// 1. Find all local maxima (peaks) with sufficient prominence
+// 2. Sort by elevation (highest first)
+// 3. Select peaks that are at least 5km apart from already selected ones
+// 4. Sort selected peaks by distance (route order)
+func findPasses(points []gpx.GPXPoint, elevations []float64, distances []float64) []Peak {
+	if len(elevations) < peakWindowSize*2 {
+		return nil
+	}
+
+	// Find all local maxima (peaks)
+	var peaks []Peak
+	for i := peakWindowSize; i < len(elevations)-peakWindowSize; i++ {
+		isPeak := true
+		currentEle := elevations[i]
+
+		// Check if this point is higher than all points in the window
+		minInWindow := currentEle
+		for j := i - peakWindowSize; j <= i+peakWindowSize; j++ {
+			if j != i && elevations[j] >= currentEle {
+				isPeak = false
+				break
+			}
+			if elevations[j] < minInWindow {
+				minInWindow = elevations[j]
+			}
+		}
+
+		// Check prominence (difference from lowest point in window)
+		prominence := currentEle - minInWindow
+		if isPeak && prominence >= minPeakProminence {
+			peaks = append(peaks, Peak{
+				Index:      i,
+				Lat:        points[i].Latitude,
+				Lng:        points[i].Longitude,
+				Elevation:  currentEle,
+				DistanceKm: distances[i],
+			})
+		}
+	}
+
+	if len(peaks) == 0 {
+		return nil
+	}
+
+	// Sort peaks by elevation (highest first)
+	for i := 0; i < len(peaks)-1; i++ {
+		for j := i + 1; j < len(peaks); j++ {
+			if peaks[j].Elevation > peaks[i].Elevation {
+				peaks[i], peaks[j] = peaks[j], peaks[i]
+			}
+		}
+	}
+
+	// Select peaks that are at least minPassDistanceKm apart
+	var selectedPeaks []Peak
+	for _, peak := range peaks {
+		tooClose := false
+		for _, selected := range selectedPeaks {
+			if math.Abs(peak.DistanceKm-selected.DistanceKm) < minPassDistanceKm {
+				tooClose = true
+				break
+			}
+		}
+		if !tooClose {
+			selectedPeaks = append(selectedPeaks, peak)
+		}
+	}
+
+	// Sort selected peaks by distance (route order) for proper numbering
+	for i := 0; i < len(selectedPeaks)-1; i++ {
+		for j := i + 1; j < len(selectedPeaks); j++ {
+			if selectedPeaks[j].DistanceKm < selectedPeaks[i].DistanceKm {
+				selectedPeaks[i], selectedPeaks[j] = selectedPeaks[j], selectedPeaks[i]
+			}
+		}
+	}
+
+	return selectedPeaks
 }

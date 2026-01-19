@@ -33,6 +33,15 @@ const meetingIcon = L.icon({
   shadowSize: [41, 41],
 });
 
+const passIcon = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
 interface RoutePoint {
   lat: number;
   lng: number;
@@ -45,9 +54,17 @@ interface MeetingPoint {
   name: string;
 }
 
+interface PassInfo {
+  lat: number;
+  lng: number;
+  elevation: number;
+  distance_km: number;
+}
+
 interface RouteMapInnerProps {
   points: RoutePoint[];
   meetingPoint?: MeetingPoint | null;
+  passes?: PassInfo[];
 }
 
 // Component to fit map bounds
@@ -94,7 +111,7 @@ function ArrowPolyline({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
-export function RouteMapInner({ points, meetingPoint }: RouteMapInnerProps) {
+export function RouteMapInner({ points, meetingPoint, passes = [] }: RouteMapInnerProps) {
   const { center, bounds, positions } = useMemo(() => {
     if (points.length === 0) {
       return {
@@ -192,6 +209,21 @@ export function RouteMapInner({ points, meetingPoint }: RouteMapInnerProps) {
             </Popup>
           </Marker>
         )}
+
+        {/* Pass markers */}
+        {passes.map((pass, index) => (
+          <Marker key={`pass-${index}`} position={[pass.lat, pass.lng]} icon={passIcon}>
+            <Popup>
+              <div className="text-center">
+                <strong>Даваа {index + 1}</strong>
+                <br />
+                Өндөр: {pass.elevation}м
+                <br />
+                Зай: {pass.distance_km}км
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );

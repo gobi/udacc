@@ -654,7 +654,7 @@ func ParseGPXPreview(c *fiber.Ctx) error {
 	return c.JSON(stats)
 }
 
-// GetRoutePoints returns the route points from a ride's GPX file
+// GetRoutePoints returns the route points and passes from a ride's GPX file
 func GetRoutePoints(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -683,7 +683,16 @@ func GetRoutePoints(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
+	// Also get stats which includes passes
+	stats, _ := gpx.ParseGPXFile(ride.GPXFileURL)
+
+	response := fiber.Map{
 		"points": points,
-	})
+	}
+
+	if stats != nil && len(stats.Passes) > 0 {
+		response["passes"] = stats.Passes
+	}
+
+	return c.JSON(response)
 }

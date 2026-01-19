@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 
 interface LeaderboardEntry {
@@ -70,7 +71,7 @@ export default function LeaderboardPage() {
               {leaderboard.length >= 3 && (
                 <div className="grid grid-cols-3 gap-4 mb-8">
                   {/* 2nd Place */}
-                  <div className="card p-6 text-center mt-8">
+                  <Link href={`/users/${leaderboard[1].user.id}`} className="card p-6 text-center mt-8 hover:shadow-lg transition-shadow">
                     <div className={`w-16 h-16 bg-gradient-to-br ${getMedalColor(2)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
                       <span className="text-white text-2xl font-bold">2</span>
                     </div>
@@ -79,17 +80,17 @@ export default function LeaderboardPage() {
                         {leaderboard[1].user.first_name.charAt(0)}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-secondary-900 mb-1">
+                    <h3 className="font-semibold text-secondary-900 mb-1 hover:text-primary-500">
                       {leaderboard[1].user.last_name} {leaderboard[1].user.first_name}
                     </h3>
                     <div className="text-2xl font-bold text-primary-500">
                       {leaderboard[1].user.total_distance_km.toFixed(1)} км
                     </div>
-                    <div className="text-sm text-secondary-500">{leaderboard[1].user.total_rides} аялал</div>
-                  </div>
+                    <div className="text-sm text-secondary-500 hover:text-primary-500">{leaderboard[1].user.total_rides} аялал</div>
+                  </Link>
 
                   {/* 1st Place */}
-                  <div className="card p-6 text-center bg-gradient-to-b from-primary-50 to-white border-2 border-primary-200">
+                  <Link href={`/users/${leaderboard[0].user.id}`} className="card p-6 text-center bg-gradient-to-b from-primary-50 to-white border-2 border-primary-200 hover:shadow-lg transition-shadow">
                     <div className={`w-20 h-20 bg-gradient-to-br ${getMedalColor(1)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
                       <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -100,7 +101,7 @@ export default function LeaderboardPage() {
                         {leaderboard[0].user.first_name.charAt(0)}
                       </span>
                     </div>
-                    <h3 className="font-bold text-lg text-secondary-900 mb-1">
+                    <h3 className="font-bold text-lg text-secondary-900 mb-1 hover:text-primary-500">
                       {leaderboard[0].user.last_name} {leaderboard[0].user.first_name}
                     </h3>
                     {leaderboard[0].user.is_ride_leader && (
@@ -111,11 +112,11 @@ export default function LeaderboardPage() {
                     <div className="text-3xl font-bold text-primary-500">
                       {leaderboard[0].user.total_distance_km.toFixed(1)} км
                     </div>
-                    <div className="text-sm text-secondary-500">{leaderboard[0].user.total_rides} аялал</div>
-                  </div>
+                    <div className="text-sm text-secondary-500 hover:text-primary-500">{leaderboard[0].user.total_rides} аялал</div>
+                  </Link>
 
                   {/* 3rd Place */}
-                  <div className="card p-6 text-center mt-12">
+                  <Link href={`/users/${leaderboard[2].user.id}`} className="card p-6 text-center mt-12 hover:shadow-lg transition-shadow">
                     <div className={`w-14 h-14 bg-gradient-to-br ${getMedalColor(3)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
                       <span className="text-white text-xl font-bold">3</span>
                     </div>
@@ -124,14 +125,14 @@ export default function LeaderboardPage() {
                         {leaderboard[2].user.first_name.charAt(0)}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-secondary-900 mb-1">
+                    <h3 className="font-semibold text-secondary-900 mb-1 hover:text-primary-500">
                       {leaderboard[2].user.last_name} {leaderboard[2].user.first_name}
                     </h3>
                     <div className="text-xl font-bold text-primary-500">
                       {leaderboard[2].user.total_distance_km.toFixed(1)} км
                     </div>
-                    <div className="text-sm text-secondary-500">{leaderboard[2].user.total_rides} аялал</div>
-                  </div>
+                    <div className="text-sm text-secondary-500 hover:text-primary-500">{leaderboard[2].user.total_rides} аялал</div>
+                  </Link>
                 </div>
               )}
 
@@ -147,9 +148,10 @@ export default function LeaderboardPage() {
                 </div>
                 <div className="divide-y">
                   {leaderboard.map((entry) => (
-                    <div
+                    <Link
+                      href={`/users/${entry.user.id}`}
                       key={entry.user.id}
-                      className={`px-6 py-4 hover:bg-secondary-50 transition-colors ${
+                      className={`block px-6 py-4 hover:bg-secondary-100 transition-colors ${
                         entry.rank <= 3 ? 'bg-primary-50/50' : ''
                       }`}
                     >
@@ -171,7 +173,7 @@ export default function LeaderboardPage() {
                               </span>
                             </div>
                             <div>
-                              <span className="font-medium text-secondary-900">
+                              <span className="font-medium text-secondary-900 hover:text-primary-500">
                                 {entry.user.last_name} {entry.user.first_name}
                               </span>
                               {entry.user.is_ride_leader && (
@@ -188,11 +190,11 @@ export default function LeaderboardPage() {
                           </span>
                           <span className="text-secondary-400 ml-1">км</span>
                         </div>
-                        <div className="col-span-2 text-right text-secondary-500">
+                        <div className="col-span-2 text-right text-secondary-500 hover:text-primary-500">
                           {entry.user.total_rides}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
