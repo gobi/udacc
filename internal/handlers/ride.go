@@ -20,16 +20,27 @@ type CreateRideRequest struct {
 	Title            string   `json:"title"`
 	Description      string   `json:"description"`
 	RideTypeID       uint     `json:"ride_type_id"`
+	DistanceKm       float64  `json:"distance_km"`
+	ElevationGain    float64  `json:"elevation_gain"`
+	MaxGradient      float64  `json:"max_gradient"`
+	MaxDescent       float64  `json:"max_descent"`
+	PassCount        int      `json:"pass_count"`
 	StartTime        string   `json:"start_time"`
 	MeetingPointName string   `json:"meeting_point_name"`
 	MeetingPointLat  *float64 `json:"meeting_point_lat"`
 	MeetingPointLng  *float64 `json:"meeting_point_lng"`
+	BonusPercentage  float64  `json:"bonus_percentage"`
 }
 
 type UpdateRideRequest struct {
 	Title            string   `json:"title"`
 	Description      string   `json:"description"`
 	RideTypeID       uint     `json:"ride_type_id"`
+	DistanceKm       *float64 `json:"distance_km"`
+	ElevationGain    *float64 `json:"elevation_gain"`
+	MaxGradient      *float64 `json:"max_gradient"`
+	MaxDescent       *float64 `json:"max_descent"`
+	PassCount        *int     `json:"pass_count"`
 	StartTime        string   `json:"start_time"`
 	MeetingPointName string   `json:"meeting_point_name"`
 	MeetingPointLat  *float64 `json:"meeting_point_lat"`
@@ -148,9 +159,15 @@ func CreateRide(c *fiber.Ctx) error {
 		Description:      req.Description,
 		RideTypeID:       req.RideTypeID,
 		CreatedByID:      user.ID,
+		DistanceKm:       req.DistanceKm,
+		ElevationGain:    req.ElevationGain,
+		MaxGradient:      req.MaxGradient,
+		MaxDescent:       req.MaxDescent,
+		PassCount:        req.PassCount,
 		MeetingPointName: req.MeetingPointName,
 		MeetingPointLat:  req.MeetingPointLat,
 		MeetingPointLng:  req.MeetingPointLng,
+		BonusPercentage:  req.BonusPercentage,
 		Status:           models.RideStatusDraft,
 	}
 
@@ -228,6 +245,21 @@ func UpdateRide(c *fiber.Ctx) error {
 	}
 	if req.MeetingPointLng != nil {
 		ride.MeetingPointLng = req.MeetingPointLng
+	}
+	if req.DistanceKm != nil {
+		ride.DistanceKm = *req.DistanceKm
+	}
+	if req.ElevationGain != nil {
+		ride.ElevationGain = *req.ElevationGain
+	}
+	if req.MaxGradient != nil {
+		ride.MaxGradient = *req.MaxGradient
+	}
+	if req.MaxDescent != nil {
+		ride.MaxDescent = *req.MaxDescent
+	}
+	if req.PassCount != nil {
+		ride.PassCount = *req.PassCount
 	}
 	if req.BonusPercentage != nil {
 		ride.BonusPercentage = *req.BonusPercentage
