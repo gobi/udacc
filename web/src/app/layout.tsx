@@ -8,6 +8,10 @@ import { Footer } from "@/components/Footer";
 export const metadata: Metadata = {
   title: "UDA Cycling Club",
   description: "Монголын дугуйчдын нэгдсэн клуб",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
