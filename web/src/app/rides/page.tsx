@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 
 interface Ride {
   id: string;
@@ -35,9 +36,12 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function RidesPage() {
+  const { user } = useAuth();
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+
+  const canCreateRide = user?.is_ride_leader || user?.is_admin;
 
   useEffect(() => {
     api.rides
@@ -52,10 +56,25 @@ export default function RidesPage() {
       {/* Page Header */}
       <section className="gradient-primary text-white py-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Аялалууд</h1>
-          <p className="text-white/80 text-lg max-w-2xl">
-            Бидэнтэй хамт аялалд гарч, шинэ найз нөхөд олоорой
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">Аялалууд</h1>
+              <p className="text-white/80 text-lg max-w-2xl">
+                Бидэнтэй хамт аялалд гарч, шинэ найз нөхөд олоорой
+              </p>
+            </div>
+            {canCreateRide && (
+              <Link
+                href="/rides/new"
+                className="bg-white text-primary-500 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Шинэ аялал
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 

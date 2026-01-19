@@ -26,6 +26,30 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   return data;
 }
 
+export async function fetchAPIMultipart(endpoint: string, formData: FormData) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+  const headers: HeadersInit = {};
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'API Error');
+  }
+
+  return data;
+}
+
 export const api = {
   auth: {
     register: (data: { email: string; password: string; last_name: string; first_name: string; phone?: string }) =>
@@ -63,5 +87,22 @@ export const api = {
     register: (id: string) => fetchAPI(`/rides/${id}/register`, { method: 'POST' }),
     unregister: (id: string) => fetchAPI(`/rides/${id}/register`, { method: 'DELETE' }),
     participants: (id: string) => fetchAPI(`/rides/${id}/participants`),
+    markAttendance: (rideId: string, participantId: string) =>
+      fetchAPI(`/rides/${rideId}/participants/${participantId}/attendance`, { method: 'POST' }),
+    updateParticipant: (rideId: string, participantId: string, data: { attended?: boolean; actual_distance_km?: number; notes?: string }) =>
+      fetchAPI(`/rides/${rideId}/participants/${participantId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    bulkAttendance: (rideId: string, participants: { user_id: string; attended: boolean }[]) =>
+      fetchAPI(`/rides/${rideId}/participants/bulk-attendance`, { method: 'POST', body: JSON.stringify({ participants }) }),
+    parseGPX: (file: File) => {
+      const formData = new FormData();
+      formData.append('gpx', file);
+      return fetchAPIMultipart('/rides/parse-gpx', formData);
+    },
+    uploadGPX: (id: string, file: File) => {
+      const formData = new FormData();
+      formData.append('gpx', file);
+      return fetchAPIMultipart(`/rides/${id}/gpx`, formData);
+    },
+    getRoute: (id: string) => fetchAPI(`/rides/${id}/route`),
   },
 };

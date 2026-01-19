@@ -64,9 +64,41 @@ func ListRides(c *fiber.Ctx) error {
 
 	query := database.DB.Model(&models.Ride{})
 
-	if status != "" {
+	// Get current user if authenticated
+	user := middleware.GetCurrentUser(c)
+	isAdmin := middleware.IsAdmin(c)
+
+	// Filter draft rides - only show to creator or admin
+	if status == "" {
+		// When no status filter, exclude drafts unless user is admin or creator
+		if user != nil && isAdmin {
+			// Admin sees all
+		} else if user != nil {
+			// Regular user sees non-draft + own drafts
+			query = query.Where("status != ? OR created_by_id = ?", models.RideStatusDraft, user.ID)
+		} else {
+			// Anonymous user sees only non-draft
+			query = query.Where("status != ?", models.RideStatusDraft)
+		}
+	} else if status == "draft" {
+		// Explicit draft filter - only for admin or creator
+		if user != nil && isAdmin {
+			query = query.Where("status = ?", status)
+		} else if user != nil {
+			query = query.Where("status = ? AND created_by_id = ?", status, user.ID)
+		} else {
+			// Anonymous can't see drafts
+			return c.JSON(fiber.Map{
+				"rides":  []models.RideResponse{},
+				"total":  0,
+				"limit":  limit,
+				"offset": offset,
+			})
+		}
+	} else {
 		query = query.Where("status = ?", status)
 	}
+
 	if rideTypeID != "" {
 		query = query.Where("ride_type_id = ?", rideTypeID)
 	}
@@ -85,7 +117,6 @@ func ListRides(c *fiber.Ctx) error {
 		Offset(offset).
 		Find(&rides)
 
-	isAdmin := middleware.IsAdmin(c)
 	responses := make([]models.RideResponse, len(rides))
 	for i, ride := range rides {
 		responses[i] = ride.ToResponse(isAdmin)
@@ -574,4 +605,85 @@ func CompleteRide(c *fiber.Ctx) error {
 	database.DB.Preload("RideType").Preload("CreatedBy").Preload("Leader").First(&ride, "id = ?", ride.ID)
 
 	return c.JSON(ride.ToResponse(user.IsAdmin))
+}
+
+// ParseGPXPreview parses a GPX file and returns route statistics without creating a ride
+func ParseGPXPreview(c *fiber.Ctx) error {
+	file, err := c.FormFile("gpx")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "GPX file is required",
+		})
+	}
+
+	if file.Size > config.AppConfig.MaxFileSize {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "File too large",
+		})
+	}
+
+	uploadDir := config.AppConfig.UploadDir
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create upload directory",
+		})
+	}
+
+	// Save to a temporary file for parsing
+	tempFilename := fmt.Sprintf("temp_%s.gpx", time.Now().Format("20060102150405"))
+	tempFilepath := filepath.Join(uploadDir, tempFilename)
+
+	if err := c.SaveFile(file, tempFilepath); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to save file",
+		})
+	}
+
+	// Parse and get stats
+	stats, err := gpx.ParseGPXFile(tempFilepath)
+
+	// Clean up temp file
+	os.Remove(tempFilepath)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse GPX file: " + err.Error(),
+		})
+	}
+
+	return c.JSON(stats)
+}
+
+// GetRoutePoints returns the route points from a ride's GPX file
+func GetRoutePoints(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid ride ID",
+		})
+	}
+
+	var ride models.Ride
+	if err := database.DB.First(&ride, "id = ?", id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Ride not found",
+		})
+	}
+
+	if ride.GPXFileURL == "" {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "No GPX file for this ride",
+		})
+	}
+
+	points, err := gpx.GetRoutePoints(ride.GPXFileURL)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to read GPX file: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"points": points,
+	})
 }
