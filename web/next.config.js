@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
+    // Only use rewrites in development (when NEXT_PUBLIC_API_URL is not set)
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return [];
+    }
     return [
       {
         source: '/api/:path*',
