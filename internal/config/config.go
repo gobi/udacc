@@ -24,6 +24,9 @@ type Config struct {
 
 	UploadDir   string
 	MaxFileSize int64
+
+	FacebookAppID     string
+	FacebookAppSecret string
 }
 
 var AppConfig *Config
@@ -52,6 +55,9 @@ func Load() (*Config, error) {
 
 		UploadDir:   getEnv("UPLOAD_DIR", "./uploads"),
 		MaxFileSize: maxFileSize,
+
+		FacebookAppID:     getEnv("FACEBOOK_APP_ID", ""),
+		FacebookAppSecret: getEnv("FACEBOOK_APP_SECRET", ""),
 	}
 
 	return AppConfig, nil

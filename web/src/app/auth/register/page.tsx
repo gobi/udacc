@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
+import FacebookLoginButton from '@/components/FacebookLoginButton';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -178,6 +179,19 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-secondary-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-secondary-500">эсвэл</span>
+            </div>
+          </div>
+
+          {/* Facebook Login */}
+          <FacebookLoginButton onError={setError} />
 
           <div className="mt-8 text-center">
             <p className="text-secondary-500">

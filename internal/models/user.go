@@ -12,12 +12,14 @@ import (
 type User struct {
 	ID           uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	Email        string         `gorm:"uniqueIndex;size:255;not null" json:"email"`
-	PasswordHash string         `gorm:"size:255;not null" json:"-"`
+	PasswordHash string         `gorm:"size:255" json:"-"`
 	LastName     string         `gorm:"size:100;not null" json:"last_name"`
 	FirstName    string         `gorm:"size:100;not null" json:"first_name"`
 	Phone        string         `gorm:"size:20" json:"phone,omitempty"`
 	AvatarURL    string         `gorm:"size:500" json:"avatar_url,omitempty"`
 	StravaURL    string         `gorm:"size:500" json:"strava_url,omitempty"`
+	FacebookID   *string        `gorm:"size:100;uniqueIndex" json:"-"`
+	OAuthProvider string        `gorm:"size:50" json:"-"`
 	IsPrivate    bool           `gorm:"default:false" json:"is_private"`
 	IsRideLeader bool           `gorm:"default:false" json:"is_ride_leader"`
 	IsAdmin      bool           `gorm:"default:false" json:"is_admin"`
@@ -40,6 +42,11 @@ func (u *User) SetPassword(password string) error {
 func (u *User) CheckPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
 	return err == nil
+}
+
+// IsOAuthOnly returns true if user registered via OAuth and has no password
+func (u *User) IsOAuthOnly() bool {
+	return u.PasswordHash == "" && u.OAuthProvider != ""
 }
 
 func (u *User) GetDisplayName(viewerIsAdmin bool) (lastName, firstName string) {

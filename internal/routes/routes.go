@@ -29,6 +29,7 @@ func Setup(app *fiber.App) {
 	auth := api.Group("/auth")
 	auth.Post("/register", handlers.Register)
 	auth.Post("/login", handlers.Login)
+	auth.Post("/facebook", handlers.FacebookLogin)
 	auth.Post("/refresh", handlers.RefreshToken)
 	auth.Get("/me", middleware.AuthRequired(), handlers.GetMe)
 	auth.Put("/me", middleware.AuthRequired(), handlers.UpdateMe)

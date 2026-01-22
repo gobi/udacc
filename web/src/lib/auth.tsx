@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from './api';
+import { loadFacebookSDK, facebookLogin } from './facebook';
 
 interface User {
   id: string;
@@ -20,6 +21,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithFacebook: () => Promise<void>;
   register: (data: { email: string; password: string; last_name: string; first_name: string; phone?: string }) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -58,6 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   };
 
+  const loginWithFacebook = async () => {
+    await loadFacebookSDK();
+    const accessToken = await facebookLogin();
+    const data = await api.auth.facebook(accessToken);
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('refresh_token', data.refresh_token);
+    setUser(data.user);
+  };
+
   const register = async (regData: { email: string; password: string; last_name: string; first_name: string; phone?: string }) => {
     const data = await api.auth.register(regData);
     localStorage.setItem('token', data.token);
@@ -72,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithFacebook, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -119,6 +119,13 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	// Check if user registered via OAuth and has no password
+	if user.IsOAuthOnly() {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "This account was created with Facebook. Please use Facebook to login.",
+		})
+	}
+
 	if !user.CheckPassword(req.Password) {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid email or password",
@@ -234,10 +241,20 @@ func ChangePassword(c *fiber.Ctx) error {
 		})
 	}
 
-	if !user.CheckPassword(req.CurrentPassword) {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Current password is incorrect",
-		})
+	// OAuth users can set password without current password (first time)
+	if user.IsOAuthOnly() {
+		if req.NewPassword == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "New password is required",
+			})
+		}
+	} else {
+		// Regular users must provide current password
+		if !user.CheckPassword(req.CurrentPassword) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Current password is incorrect",
+			})
+		}
 	}
 
 	if err := user.SetPassword(req.NewPassword); err != nil {

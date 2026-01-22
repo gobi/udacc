@@ -56,6 +56,8 @@ export const api = {
       fetchAPI('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
     login: (data: { email: string; password: string }) =>
       fetchAPI('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    facebook: (accessToken: string) =>
+      fetchAPI('/auth/facebook', { method: 'POST', body: JSON.stringify({ access_token: accessToken }) }),
     me: () => fetchAPI('/auth/me'),
     updateMe: (data: any) => fetchAPI('/auth/me', { method: 'PUT', body: JSON.stringify(data) }),
   },
