@@ -2,34 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 interface FacebookLoginButtonProps {
   onError?: (error: string) => void;
+  onSuccess?: () => void;
 }
 
-export default function FacebookLoginButton({ onError }: FacebookLoginButtonProps) {
+export default function FacebookLoginButton({ onError, onSuccess }: FacebookLoginButtonProps) {
   const [loading, setLoading] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
-  const { loginWithFacebook } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Helper to check if SDK is truly initialized (not just loaded)
     const isSDKInitialized = () => {
       return window.__fbInitialized === true && window.FB && typeof window.FB.login === 'function';
     };
 
-    // Check if SDK is already initialized
     if (isSDKInitialized()) {
-      console.log('Facebook SDK already initialized');
       setSdkReady(true);
       return;
     }
 
-    // Listen for SDK ready event (fired after FB.init completes)
     const handleSDKReady = () => {
-      console.log('Facebook SDK ready event received');
       if (isSDKInitialized()) {
         setSdkReady(true);
       }
@@ -37,22 +32,16 @@ export default function FacebookLoginButton({ onError }: FacebookLoginButtonProp
 
     window.addEventListener('fb-sdk-ready', handleSDKReady);
 
-    // Fallback: poll for SDK initialization flag
+    // Fallback polling
     let attempts = 0;
-    const maxAttempts = 100; // 10 seconds
     const checkSDK = () => {
       attempts++;
       if (isSDKInitialized()) {
-        console.log('Facebook SDK ready (polling)');
         setSdkReady(true);
-      } else if (attempts < maxAttempts) {
+      } else if (attempts < 100) {
         setTimeout(checkSDK, 100);
-      } else {
-        console.error('Facebook SDK failed to initialize after 10 seconds');
       }
     };
-
-    // Start polling after a delay
     const pollTimeout = setTimeout(checkSDK, 1000);
 
     return () => {
@@ -61,26 +50,43 @@ export default function FacebookLoginButton({ onError }: FacebookLoginButtonProp
     };
   }, []);
 
-  const handleClick = async () => {
-    if (!sdkReady) {
-      if (onError) {
-        onError('Facebook SDK ачаалагдаж байна, түр хүлээнэ үү...');
-      }
+  // Direct click handler - FB.login MUST be called synchronously in click event
+  const handleClick = () => {
+    if (!sdkReady || !window.FB) {
+      onError?.('Facebook SDK ачаалагдаж байна, түр хүлээнэ үү...');
       return;
     }
 
     setLoading(true);
-    try {
-      await loginWithFacebook();
-      router.push('/');
-    } catch (err: any) {
-      const message = err.message || 'Facebook-р нэвтрэхэд алдаа гарлаа';
-      if (onError) {
-        onError(message);
-      }
-    } finally {
-      setLoading(false);
-    }
+
+    // Call FB.login directly and synchronously in click handler
+    window.FB.login(
+      (response) => {
+        if (response.authResponse) {
+          const accessToken = response.authResponse.accessToken;
+
+          // Now authenticate with backend
+          api.auth.facebook(accessToken)
+            .then((data) => {
+              localStorage.setItem('token', data.token);
+              localStorage.setItem('refresh_token', data.refresh_token);
+              onSuccess?.();
+              router.push('/');
+              // Force reload to refresh auth state
+              window.location.href = '/';
+            })
+            .catch((err) => {
+              console.error('Backend auth error:', err);
+              onError?.(err.message || 'Серверт нэвтрэхэд алдаа гарлаа');
+              setLoading(false);
+            });
+        } else {
+          onError?.('Facebook нэвтрэлт цуцлагдсан');
+          setLoading(false);
+        }
+      },
+      { scope: 'email,public_profile' }
+    );
   };
 
   return (
