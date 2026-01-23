@@ -24,6 +24,7 @@ interface FacebookSDK {
     cookie?: boolean;
     xfbml?: boolean;
     version: string;
+    status?: boolean;
   }): void;
   login(
     callback: (response: FacebookLoginResponse) => void,

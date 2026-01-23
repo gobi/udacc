@@ -24,14 +24,18 @@ export function FacebookSDK() {
           cookie: true,
           xfbml: true,
           version: 'v18.0',
+          status: true, // Check login status on init - ensures SDK is fully ready
         });
 
-        // Set global flag AFTER init completes
-        window.__fbInitialized = true;
-        console.log('Facebook SDK initialized');
+        console.log('Facebook SDK init called');
 
-        // Dispatch event to notify components that SDK is ready
-        window.dispatchEvent(new Event('fb-sdk-ready'));
+        // Wait for getLoginStatus to complete before marking as ready
+        // This ensures the SDK's internal async initialization is done
+        window.FB.getLoginStatus(() => {
+          window.__fbInitialized = true;
+          console.log('Facebook SDK fully initialized');
+          window.dispatchEvent(new Event('fb-sdk-ready'));
+        });
       } catch (error) {
         console.error('Facebook SDK initialization error:', error);
       }
