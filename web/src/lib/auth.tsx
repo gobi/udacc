@@ -62,13 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithFacebook = async () => {
     try {
-      // Ensure Facebook SDK is fully loaded
+      // Load and wait for Facebook SDK to be fully ready
       await loadFacebookSDK();
 
-      // Small delay to ensure SDK is fully initialized
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      // Perform Facebook login
       const accessToken = await facebookLogin();
+
+      // Authenticate with backend
       const data = await api.auth.facebook(accessToken);
       localStorage.setItem('token', data.token);
       localStorage.setItem('refresh_token', data.refresh_token);

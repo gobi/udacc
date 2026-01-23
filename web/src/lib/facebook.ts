@@ -4,11 +4,31 @@ let fbSDKLoaded = false;
 let fbSDKLoading = false;
 let loadPromise: Promise<void> | null = null;
 
+// Helper to wait for FB to be fully ready
+function waitForFB(maxAttempts = 50): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const checkFB = () => {
+      attempts++;
+      if (window.FB && fbSDKLoaded) {
+        resolve();
+      } else if (attempts >= maxAttempts) {
+        reject(new Error('Timeout waiting for Facebook SDK'));
+      } else {
+        setTimeout(checkFB, 100);
+      }
+    };
+    checkFB();
+  });
+}
+
 export function loadFacebookSDK(): Promise<void> {
+  // If already loaded and ready, return immediately
   if (fbSDKLoaded && window.FB) {
     return Promise.resolve();
   }
 
+  // If currently loading, return existing promise
   if (fbSDKLoading && loadPromise) {
     return loadPromise;
   }
@@ -16,18 +36,6 @@ export function loadFacebookSDK(): Promise<void> {
   fbSDKLoading = true;
 
   loadPromise = new Promise((resolve, reject) => {
-    // Check if script already exists and FB is initialized
-    if (document.getElementById('facebook-jssdk')) {
-      if (window.FB) {
-        // SDK already loaded and initialized
-        fbSDKLoaded = true;
-        fbSDKLoading = false;
-        resolve();
-        return;
-      }
-      // Script exists but not initialized yet, wait for fbAsyncInit
-    }
-
     // Set up the callback before loading the script
     window.fbAsyncInit = function () {
       try {
@@ -44,43 +52,77 @@ export function loadFacebookSDK(): Promise<void> {
 
         fbSDKLoaded = true;
         fbSDKLoading = false;
-        resolve();
+
+        // Wait a bit to ensure FB is fully ready
+        setTimeout(() => resolve(), 200);
       } catch (error) {
         fbSDKLoading = false;
+        fbSDKLoaded = false;
         reject(error);
       }
     };
 
-    // If script doesn't exist, load it
-    if (!document.getElementById('facebook-jssdk')) {
-      const script = document.createElement('script');
-      script.id = 'facebook-jssdk';
-      script.src = 'https://connect.facebook.net/en_US/sdk.js';
-      script.async = true;
-      script.defer = true;
-      script.onerror = () => {
+    // Check if script already exists
+    const existingScript = document.getElementById('facebook-jssdk');
+    if (existingScript) {
+      // Script exists, check if FB is ready
+      if (window.FB && fbSDKLoaded) {
         fbSDKLoading = false;
-        loadPromise = null;
-        reject(new Error('Failed to load Facebook SDK'));
-      };
+        resolve();
+      } else {
+        // Wait for fbAsyncInit to be called
+        // Add a timeout in case it never fires
+        setTimeout(() => {
+          if (!fbSDKLoaded) {
+            fbSDKLoading = false;
+            reject(new Error('Facebook SDK initialization timeout'));
+          }
+        }, 10000);
+      }
+      return;
+    }
 
-      const firstScript = document.getElementsByTagName('script')[0];
-      firstScript.parentNode?.insertBefore(script, firstScript);
+    // Load the SDK
+    const script = document.createElement('script');
+    script.id = 'facebook-jssdk';
+    script.src = 'https://connect.facebook.net/en_US/sdk.js';
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      fbSDKLoading = false;
+      fbSDKLoaded = false;
+      loadPromise = null;
+      reject(new Error('Failed to load Facebook SDK'));
+    };
+
+    const firstScript = document.getElementsByTagName('script')[0];
+    if (firstScript?.parentNode) {
+      firstScript.parentNode.insertBefore(script, firstScript);
+    } else {
+      document.head.appendChild(script);
     }
   });
 
   return loadPromise;
 }
 
-export function facebookLogin(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // Ensure SDK is loaded before calling login
-    if (!fbSDKLoaded || !window.FB) {
-      reject(new Error('Facebook SDK not initialized. Please try again.'));
-      return;
-    }
+export async function facebookLogin(): Promise<string> {
+  // Double-check that SDK is loaded and ready
+  if (!fbSDKLoaded || !window.FB) {
+    throw new Error('Facebook SDK not initialized. Please try again.');
+  }
 
+  // Wait for FB to be fully ready
+  await waitForFB();
+
+  return new Promise((resolve, reject) => {
     try {
+      // Final check before calling login
+      if (!window.FB) {
+        reject(new Error('Facebook SDK not available'));
+        return;
+      }
+
       window.FB.login(
         (response) => {
           if (response.authResponse) {
