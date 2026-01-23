@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { AuthProvider } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { FacebookSDK } from "@/components/FacebookSDK";
 
 export const metadata: Metadata = {
   title: "UDA Cycling Club",
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="mn">
       <body className="bg-gray-50 min-h-screen flex flex-col">
+        <FacebookSDK />
         <AuthProvider>
           <Navbar />
           <main className="flex-grow pt-20">
