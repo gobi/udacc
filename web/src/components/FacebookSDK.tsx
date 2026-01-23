@@ -18,14 +18,21 @@ export function FacebookSDK() {
     window.fbAsyncInit = function() {
       if (!window.FB) return;
 
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: 'v18.0',
-      });
+      try {
+        window.FB.init({
+          appId: FACEBOOK_APP_ID,
+          cookie: true,
+          xfbml: true,
+          version: 'v18.0',
+        });
 
-      console.log('Facebook SDK initialized');
+        console.log('Facebook SDK initialized');
+
+        // Dispatch event to notify components that SDK is ready
+        window.dispatchEvent(new Event('fb-sdk-ready'));
+      } catch (error) {
+        console.error('Facebook SDK initialization error:', error);
+      }
     };
 
     // Load the SDK script only if not already present

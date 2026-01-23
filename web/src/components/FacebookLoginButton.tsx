@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 
@@ -10,10 +10,61 @@ interface FacebookLoginButtonProps {
 
 export default function FacebookLoginButton({ onError }: FacebookLoginButtonProps) {
   const [loading, setLoading] = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
   const { loginWithFacebook } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    // Check if SDK is already ready
+    if (window.FB && typeof window.FB.login === 'function') {
+      console.log('Facebook SDK already ready');
+      setSdkReady(true);
+      return;
+    }
+
+    // Listen for SDK ready event
+    const handleSDKReady = () => {
+      console.log('Facebook SDK ready event received');
+      // Double-check FB is available
+      if (window.FB && typeof window.FB.login === 'function') {
+        setSdkReady(true);
+      }
+    };
+
+    window.addEventListener('fb-sdk-ready', handleSDKReady);
+
+    // Fallback: poll for SDK if event doesn't fire
+    let attempts = 0;
+    const maxAttempts = 100; // 10 seconds
+    const checkSDK = () => {
+      attempts++;
+      if (window.FB && typeof window.FB.login === 'function') {
+        console.log('Facebook SDK ready (polling)');
+        setSdkReady(true);
+      } else if (attempts < maxAttempts) {
+        setTimeout(checkSDK, 100);
+      } else {
+        console.error('Facebook SDK failed to initialize');
+      }
+    };
+
+    // Start polling after a delay
+    const pollTimeout = setTimeout(checkSDK, 1000);
+
+    return () => {
+      window.removeEventListener('fb-sdk-ready', handleSDKReady);
+      clearTimeout(pollTimeout);
+    };
+  }, []);
+
   const handleClick = async () => {
+    if (!sdkReady) {
+      if (onError) {
+        onError('Facebook SDK ачаалагдаж байна, түр хүлээнэ үү...');
+      }
+      return;
+    }
+
     setLoading(true);
     try {
       await loginWithFacebook();
@@ -32,7 +83,7 @@ export default function FacebookLoginButton({ onError }: FacebookLoginButtonProp
     <button
       type="button"
       onClick={handleClick}
-      disabled={loading}
+      disabled={loading || !sdkReady}
       className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-secondary-200 rounded-xl bg-white hover:bg-secondary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? (
@@ -43,7 +94,7 @@ export default function FacebookLoginButton({ onError }: FacebookLoginButtonProp
         </svg>
       )}
       <span className="text-secondary-700 font-medium">
-        {loading ? 'Нэвтэрч байна...' : 'Facebook-р нэвтрэх'}
+        {!sdkReady ? 'Ачаалж байна...' : loading ? 'Нэвтэрч байна...' : 'Facebook-р нэвтрэх'}
       </span>
     </button>
   );

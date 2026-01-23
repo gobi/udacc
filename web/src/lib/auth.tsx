@@ -62,10 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithFacebook = async () => {
     try {
-      // Load and wait for Facebook SDK to be fully ready
-      await loadFacebookSDK();
-
-      // Perform Facebook login
+      // SDK is already loaded at app level, just perform login
       const accessToken = await facebookLogin();
 
       // Authenticate with backend

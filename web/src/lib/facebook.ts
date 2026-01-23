@@ -1,33 +1,13 @@
-// Helper to wait for FB to be fully ready
-// SDK is loaded at app level via FacebookSDK component
-function waitForFB(maxAttempts = 100): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let attempts = 0;
-
-    const checkFB = () => {
-      attempts++;
-
-      // Check if FB exists and is initialized
-      if (window.FB && typeof window.FB.login === 'function') {
-        resolve();
-        return;
-      }
-
-      if (attempts >= maxAttempts) {
-        reject(new Error('Timeout waiting for Facebook SDK. Please refresh the page.'));
-        return;
-      }
-
-      setTimeout(checkFB, 100);
-    };
-
-    checkFB();
-  });
-}
-
 export function loadFacebookSDK(): Promise<void> {
-  // SDK is preloaded at app level, just wait for it to be ready
-  return waitForFB();
+  // SDK is preloaded at app level via FacebookSDK component
+  // Just verify it's available
+  return new Promise((resolve, reject) => {
+    if (window.FB && typeof window.FB.login === 'function') {
+      resolve();
+    } else {
+      reject(new Error('Facebook SDK not loaded. Please refresh the page.'));
+    }
+  });
 }
 
 export function facebookLogin(): Promise<string> {
