@@ -61,12 +61,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithFacebook = async () => {
-    await loadFacebookSDK();
-    const accessToken = await facebookLogin();
-    const data = await api.auth.facebook(accessToken);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('refresh_token', data.refresh_token);
-    setUser(data.user);
+    try {
+      // Ensure Facebook SDK is fully loaded
+      await loadFacebookSDK();
+
+      // Small delay to ensure SDK is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const accessToken = await facebookLogin();
+      const data = await api.auth.facebook(accessToken);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      setUser(data.user);
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      throw error;
+    }
   };
 
   const register = async (regData: { email: string; password: string; last_name: string; first_name: string; phone?: string }) => {

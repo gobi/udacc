@@ -34,13 +34,13 @@ func FacebookLogin(c *fiber.Ctx) error {
 	var req FacebookLoginRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": "Буруу хүсэлтийн формат",
 		})
 	}
 
 	if req.AccessToken == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Access token is required",
+			"error": "Access token шаардлагатай",
 		})
 	}
 
@@ -48,13 +48,13 @@ func FacebookLogin(c *fiber.Ctx) error {
 	fbUser, err := verifyFacebookToken(req.AccessToken)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid Facebook access token",
+			"error": fmt.Sprintf("Facebook токен баталгаажуулалт амжилтгүй: %v", err),
 		})
 	}
 
 	if fbUser.ID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Could not get Facebook user info",
+			"error": "Facebook хэрэглэгчийн мэдээлэл авах боломжгүй",
 		})
 	}
 
@@ -79,7 +79,7 @@ func FacebookLogin(c *fiber.Ctx) error {
 				}
 				if err := database.DB.Save(&user).Error; err != nil {
 					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-						"error": "Failed to link Facebook account",
+						"error": "Facebook бүртгэл холбоход алдаа гарлаа",
 					})
 				}
 			}
@@ -89,7 +89,7 @@ func FacebookLogin(c *fiber.Ctx) error {
 		if result.Error != nil {
 			if fbUser.Email == "" {
 				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": "Email permission is required. Please allow email access in Facebook.",
+					"error": "Имэйл хаяг шаардлагатай. Facebook дээр имэйл хандах эрхийг зөвшөөрнө үү.",
 				})
 			}
 
@@ -116,11 +116,11 @@ func FacebookLogin(c *fiber.Ctx) error {
 				// Check if email already exists (race condition)
 				if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
 					return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-						"error": "Email already registered. Please login with your password.",
+						"error": "Энэ имэйл хаяг бүртгэлтэй байна. Нууц үгээрээ нэвтэрнэ үү.",
 					})
 				}
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error": "Failed to create user",
+					"error": "Хэрэглэгч үүсгэхэд алдаа гарлаа",
 				})
 			}
 		}
@@ -130,7 +130,7 @@ func FacebookLogin(c *fiber.Ctx) error {
 	accessToken, refreshToken, err := middleware.GenerateTokens(&user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to generate tokens",
+			"error": "Токен үүсгэхэд алдаа гарлаа",
 		})
 	}
 

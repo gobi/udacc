@@ -106,7 +106,13 @@ func Login(c *fiber.Ctx) error {
 	var req LoginRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": "Буруу хүсэлтийн формат",
+		})
+	}
+
+	if req.Email == "" || req.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Имэйл болон нууц үг шаардлагатай",
 		})
 	}
 
@@ -115,27 +121,27 @@ func Login(c *fiber.Ctx) error {
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid email or password",
+			"error": "Имэйл эсвэл нууц үг буруу байна",
 		})
 	}
 
 	// Check if user registered via OAuth and has no password
 	if user.IsOAuthOnly() {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "This account was created with Facebook. Please use Facebook to login.",
+			"error": "Таны бүртгэл Facebook-р үүссэн байна. Facebook-р нэвтэрнэ үү.",
 		})
 	}
 
 	if !user.CheckPassword(req.Password) {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid email or password",
+			"error": "Имэйл эсвэл нууц үг буруу байна",
 		})
 	}
 
 	accessToken, refreshToken, err := middleware.GenerateTokens(&user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to generate tokens",
+			"error": "Токен үүсгэхэд алдаа гарлаа",
 		})
 	}
 
