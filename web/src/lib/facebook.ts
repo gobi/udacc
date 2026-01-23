@@ -1,30 +1,31 @@
 export function loadFacebookSDK(): Promise<void> {
   // SDK is preloaded at app level via FacebookSDK component
-  // Just verify it's available
+  // Verify it's initialized (not just loaded)
   return new Promise((resolve, reject) => {
-    if (window.FB && typeof window.FB.login === 'function') {
+    if (window.__fbInitialized && window.FB && typeof window.FB.login === 'function') {
       resolve();
     } else {
-      reject(new Error('Facebook SDK not loaded. Please refresh the page.'));
+      reject(new Error('Facebook SDK not initialized. Please refresh the page.'));
     }
   });
 }
 
 export function facebookLogin(): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Final check before calling login
-    if (!window.FB || typeof window.FB.login !== 'function') {
-      reject(new Error('Facebook SDK not available. Please refresh the page.'));
+    // Check initialization flag, not just FB object existence
+    if (!window.__fbInitialized || !window.FB || typeof window.FB.login !== 'function') {
+      reject(new Error('Facebook SDK not initialized. Please refresh the page.'));
       return;
     }
 
     try {
-      // First call getLoginStatus to ensure SDK is fully initialized
-      window.FB.getLoginStatus((statusResponse) => {
+      const FB = window.FB;
+      // First call getLoginStatus to ensure SDK is fully ready
+      FB.getLoginStatus((statusResponse) => {
         console.log('Facebook login status:', statusResponse.status);
 
         // Now safe to call login
-        window.FB.login(
+        FB.login(
           (response) => {
             if (response.authResponse) {
               resolve(response.authResponse.accessToken);

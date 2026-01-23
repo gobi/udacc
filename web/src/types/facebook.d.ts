@@ -36,4 +36,5 @@ interface FacebookSDK {
 interface Window {
   FB?: FacebookSDK;
   fbAsyncInit?: () => void;
+  __fbInitialized?: boolean;
 }

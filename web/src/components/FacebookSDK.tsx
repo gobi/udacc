@@ -9,8 +9,8 @@ export function FacebookSDK() {
     // Only load on client side
     if (typeof window === 'undefined') return;
 
-    // Check if already loaded
-    if (window.FB) {
+    // Check if already initialized (not just loaded)
+    if (window.__fbInitialized) {
       return;
     }
 
@@ -26,6 +26,8 @@ export function FacebookSDK() {
           version: 'v18.0',
         });
 
+        // Set global flag AFTER init completes
+        window.__fbInitialized = true;
         console.log('Facebook SDK initialized');
 
         // Dispatch event to notify components that SDK is ready

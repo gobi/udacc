@@ -15,36 +15,40 @@ export default function FacebookLoginButton({ onError }: FacebookLoginButtonProp
   const router = useRouter();
 
   useEffect(() => {
-    // Check if SDK is already ready
-    if (window.FB && typeof window.FB.login === 'function') {
-      console.log('Facebook SDK already ready');
+    // Helper to check if SDK is truly initialized (not just loaded)
+    const isSDKInitialized = () => {
+      return window.__fbInitialized === true && window.FB && typeof window.FB.login === 'function';
+    };
+
+    // Check if SDK is already initialized
+    if (isSDKInitialized()) {
+      console.log('Facebook SDK already initialized');
       setSdkReady(true);
       return;
     }
 
-    // Listen for SDK ready event
+    // Listen for SDK ready event (fired after FB.init completes)
     const handleSDKReady = () => {
       console.log('Facebook SDK ready event received');
-      // Double-check FB is available
-      if (window.FB && typeof window.FB.login === 'function') {
+      if (isSDKInitialized()) {
         setSdkReady(true);
       }
     };
 
     window.addEventListener('fb-sdk-ready', handleSDKReady);
 
-    // Fallback: poll for SDK if event doesn't fire
+    // Fallback: poll for SDK initialization flag
     let attempts = 0;
     const maxAttempts = 100; // 10 seconds
     const checkSDK = () => {
       attempts++;
-      if (window.FB && typeof window.FB.login === 'function') {
+      if (isSDKInitialized()) {
         console.log('Facebook SDK ready (polling)');
         setSdkReady(true);
       } else if (attempts < maxAttempts) {
         setTimeout(checkSDK, 100);
       } else {
-        console.error('Facebook SDK failed to initialize');
+        console.error('Facebook SDK failed to initialize after 10 seconds');
       }
     };
 
