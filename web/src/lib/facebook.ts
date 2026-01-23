@@ -19,16 +19,22 @@ export function facebookLogin(): Promise<string> {
     }
 
     try {
-      window.FB.login(
-        (response) => {
-          if (response.authResponse) {
-            resolve(response.authResponse.accessToken);
-          } else {
-            reject(new Error('Facebook login cancelled'));
-          }
-        },
-        { scope: 'email,public_profile' }
-      );
+      // First call getLoginStatus to ensure SDK is fully initialized
+      window.FB.getLoginStatus((statusResponse) => {
+        console.log('Facebook login status:', statusResponse.status);
+
+        // Now safe to call login
+        window.FB.login(
+          (response) => {
+            if (response.authResponse) {
+              resolve(response.authResponse.accessToken);
+            } else {
+              reject(new Error('Facebook login cancelled'));
+            }
+          },
+          { scope: 'email,public_profile' }
+        );
+      });
     } catch (error) {
       reject(error);
     }
